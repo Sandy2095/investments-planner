@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investments Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom Range Slider Styling to match "Green" aesthetic */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #10b981;
+            /* Emerald 500 */
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e5e7eb;
+            border-radius: 2px;
+        }
+
+        input[type=range]:focus::-webkit-slider-runnable-track {
+            background: #d1d5db;
+        }
+    </style>
+    <script>
+        function toggleAdvanced() {
+            document.getElementById('advancedMeta').classList.toggle('hidden');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Quote Modal Logic
+            const hasSeenQuote = localStorage.getItem('hasSeenInvestmentQuote');
+            if (!hasSeenQuote) {
+                const modal = document.getElementById('quoteModal');
+                if (modal) modal.classList.remove('hidden');
+            }
+
+            // Slider Sync Logic
+            const sliders = document.querySelectorAll('.sync-slider');
+            sliders.forEach(slider => {
+                slider.addEventListener('input', function () {
+                    const targetId = this.getAttribute('data-target');
+                    const targetInput = document.getElementById(targetId);
+                    if (targetInput) targetInput.value = this.value;
+                });
+            });
+
+            const numericInputs = document.querySelectorAll('.sync-input');
+            numericInputs.forEach(input => {
+                input.addEventListener('input', function () {
+                    const targetId = this.getAttribute('data-target');
+                    const targetSlider = document.getElementById(targetId);
+                    if (targetSlider) targetSlider.value = this.value;
+                });
+            });
+
+            // Initial Validation
+            validateFinances();
+        });
+
+        function closeQuoteModal() {
+            localStorage.setItem('hasSeenInvestmentQuote', 'true');
+            document.getElementById('quoteModal').classList.add('hidden');
+        }
+
+        function validateFinances() {
+            const salary = parseFloat(document.getElementById('monthly_salary').value) || 0;
+            const expenses = parseFloat(document.getElementById('monthly_expenses').value) || 0;
+            const errorMsg = document.getElementById('expense-error');
+            const submitBtn = document.querySelector('button[value="auto"]');
+
+            if (expenses > salary) {
+                if (errorMsg) errorMsg.classList.remove('hidden');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                if (errorMsg) errorMsg.classList.add('hidden');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+        function syncRisk(source) {
+            const safe = document.getElementById('safe_percent');
+            const risk = document.getElementById('risk_percent');
+
+            if (source === 'safe') {
+                let val = parseFloat(safe.value);
+                if (isNaN(val)) val = 0;
+                if (val > 100) val = 100;
+                if (val < 0) val = 0;
+                risk.value = 100 - val;
+            } else {
+                let val = parseFloat(risk.value);
+                if (isNaN(val)) val = 0;
+                if (val > 100) val = 100;
+                if (val < 0) val = 0;
+                safe.value = 100 - val;
+            }
+        }
+
+        function toggleGirlChildInputs() {
+            const count = parseInt(document.getElementById('girl_child_count').value) || 0;
+            const container1 = document.getElementById('girl_child_1_container');
+            const container2 = document.getElementById('girl_child_2_container');
+
+            if (count >= 1) {
+                container1.classList.remove('hidden');
+            } else {
+                container1.classList.add('hidden');
+                // Clear value if hidden
+                document.getElementById('girl_child_age_1').value = '';
+            }
+
+            if (count >= 2) {
+                container2.classList.remove('hidden');
+            } else {
+                container2.classList.add('hidden');
+                document.getElementById('girl_child_age_2').value = '';
+            }
+        }
+
+        function validateChildAge(input) {
+            let val = parseInt(input.value);
+            if (val > 10) input.value = 10;
+            if (val < 0) input.value = 0;
+        }
+
+        function clearInputs() {
+            // Select all numeric inputs in the main profile section
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                input.value = "0";
+            });
+
+            // Also reset selects if needed, though primarily numbers were asked
+            // Reset girl child select
+            const girlChild = document.getElementById('girl_child_count');
+            if (girlChild) {
+                girlChild.value = "0";
+                toggleGirlChildInputs();
+            }
+
+            // Reset validation states
+            if (document.getElementById('expense-error')) {
+                document.getElementById('expense-error').classList.add('hidden');
+            }
+            const submitBtn = document.querySelector('button[value="auto"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Reset Right Panel to Default Empty State
+            const resultsPanel = document.getElementById('results-panel');
+            if (resultsPanel) {
+                resultsPanel.innerHTML = `
+                <div class="h-64 flex flex-col items-center justify-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100 text-gray-400">
+                    <div class="text-5xl mb-4 opacity-20">📊</div>
+                    <p class="font-medium">Enter your details to generate your plan.</p>
+                </div>
+                `;
+            }
+
+            // Reset Sliders and Instrument Inputs
+            const sliders = document.querySelectorAll('.sync-slider');
+            sliders.forEach(slider => {
+                slider.value = 0;
+                // Dispatch event to sync paired input
+                slider.dispatchEvent(new Event('input'));
+            });
+
+            const syncInputs = document.querySelectorAll('.sync-input');
+            syncInputs.forEach(input => {
+                input.value = 0;
+            });
+
+            // Collapse Adjust Investment Section
+            const advancedSection = document.getElementById('advancedMeta');
+            if (advancedSection) {
+                advancedSection.classList.add('hidden');
+            }
+
+            // Reset Target Year to minimum valid year (Calendar Year + 1)
+            const targetYearInput = document.querySelector('input[name="target_year"]');
+            if (targetYearInput) {
+                targetYearInput.value = "{{ min_year }}";
+            }
+
+            // Recalculate all cards
+            updateAllInstrumentCalculations();
+        }
+
+        // --- Live Instrument Calculation Logic ---
+        function formatMoney(amount) {
+            return "₹" + amount.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        }
+
+        function calculateReturns(yearlyAmount, years, rate) {
+            let p = parseFloat(yearlyAmount) || 0;
+            let n = parseFloat(years) || 0;
+            let r = parseFloat(rate) || 0;
+
+            if (p === 0 || n === 0) return { invested: 0, interest: 0, maturity: 0 };
+
+            let totalInvested = p * n;
+
+            // Future Value of Annuity (Annual compounding, regular annual deposits)
+            // FV = P * [((1 + i)^n - 1) / i] * (1+i) 
+            // Assuming investment at beginning of year (Annuity Due) which is standard for SSY/PPF
+            // i = rate / 100
+
+            let i = r / 100;
+            let maturity = 0;
+
+            if (i === 0) {
+                maturity = totalInvested;
+            } else {
+                maturity = p * ((Math.pow(1 + i, n) - 1) / i) * (1 + i);
+            }
+
+            let totalInterest = maturity - totalInvested;
+
+            return {
+                invested: totalInvested,
+                interest: totalInterest,
+                maturity: maturity
+            };
+        }
+
+        function updateInstrumentCard(container) {
+            const amountId = container.dataset.amountId;
+            const yearsId = container.dataset.yearsId;
+            const rate = parseFloat(container.dataset.rate);
+
+            const amountInput = document.getElementById(amountId);
+            const yearsInput = document.getElementById(yearsId);
+
+            if (!amountInput || !yearsInput) return;
+
+            const results = calculateReturns(amountInput.value, yearsInput.value, rate);
+
+            // Update DOM with animation class maybe? For now just text.
+            const prefix = amountId.replace('_amount', ''); // e.g. ssy_calc
+
+            document.getElementById(prefix + '_calc_invested').textContent = formatMoney(results.invested);
+            document.getElementById(prefix + '_calc_interest').textContent = formatMoney(results.interest);
+            document.getElementById(prefix + '_calc_maturity').textContent = formatMoney(results.maturity);
+        }
+
+        function updateAllInstrumentCalculations() {
+            document.querySelectorAll('.calc-container').forEach(container => {
+                updateInstrumentCard(container);
+            });
+        }
+
+        // Attach listeners on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Attach to all sync-inputs and sync-sliders
+            document.querySelectorAll('.sync-input, .sync-slider').forEach(el => {
+                el.addEventListener('input', (e) => {
+                    // Find parent card or identify which card this input belongs to
+                    // The inputs have IDs like `ssy_calc_amount`. 
+                    // The container has `data-amount-id="ssy_calc_amount"`
+
+                    // We can just find the relevant container by ID match
+                    const id = e.target.id.replace('_slider', ''); // normalize to input id
+
+                    // Find container that references this input
+                    const container = document.querySelector(`.calc-container[data-amount-id="${id}"]`) ||
+                        document.querySelector(`.calc-container[data-years-id="${id}"]`);
+
+                    if (container) {
+                        updateInstrumentCard(container);
+                    }
+                });
+            });
+
+            // Initial Calculation
+            updateAllInstrumentCalculations();
+        });
+
+        function validateMinYear(input, minVal) {
+            if (input.value && parseInt(input.value) < minVal) {
+                input.value = minVal;
+            }
+        }
+    </script>
+</head>
+
+<body class="min-h-screen bg-gray-50 text-gray-800 p-8">
+
+    <!-- QUOTE MODAL -->
+    {% if quote %}
+    <div id="quoteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"></div>
+        <div class="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all">
+            <div class="h-2 w-full bg-gradient-to-r from-blue-500 to-purple-600"></div>
+            <div class="p-8 text-center">
+                <div
+                    class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-4xl text-blue-500">
+                    ❝</div>
+                <blockquote class="font-serif text-2xl italic leading-relaxed text-gray-800 font-medium">{{ quote.text
+                    }}</blockquote>
+                <div class="mt-6">
+                    <div class="h-0.5 w-16 mx-auto bg-gray-200 mb-2"></div>
+                    <p class="text-sm font-bold uppercase tracking-widest text-gray-500">{{ quote.author }}</p>
+                </div>
+                <button onclick="closeQuoteModal()"
+                    class="mt-8 rounded-full bg-gray-900 px-8 py-3 text-sm font-semibold text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all transform hover:-translate-y-0.5">Start
+                    Planning</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="max-w-7xl mx-auto space-y-10">
+
+        <header class="text-center space-y-2">
+            <h1
+                class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                Investments Planner</h1>
+            <p class="text-gray-500">Plan. Adjust. Prosper.</p>
+        </header>
+
+        <!-- Error Message -->
+        {% if error_message %}
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md shadow-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-red-700">
+                        {{ error_message }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Main Form -->
+        <form action="/" method="post" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- Left Panel: Inputs -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                    <h2 class="text-xl font-bold mb-4 text-gray-700">Profile</h2>
+
+                    <!-- Core Inputs -->
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Monthly Salary</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2 text-gray-400">₹</span>
+                                    <input type="number" id="monthly_salary" name="monthly_salary"
+                                        value="{{ form_data.monthly_salary | int }}" required min="0"
+                                        oninput="validateFinances()"
+                                        class="w-full pl-8 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Age</label>
+                                <input type="number" name="age" value="{{ form_data.age | int }}" required min="0"
+                                    class="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Monthly Expenses</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2 text-gray-400">₹</span>
+                                    <input type="number" id="monthly_expenses" name="monthly_expenses"
+                                        value="{{ form_data.monthly_expenses | int }}" required min="0"
+                                        oninput="validateFinances()"
+                                        class="w-full pl-8 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                                <p id="expense-error" class="hidden text-xs text-red-500 mt-1 font-medium">Expenses
+                                    cannot exceed Salary!</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Target Corpus Year</label>
+                                <input type="number" name="target_year" value="{{ form_data.target_year | int }}"
+                                    required min="{{ min_year }}" onblur="validateMinYear(this, {{ min_year }})"
+                                    class="w-full px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+
+                        <!-- Bucket Split -->
+                        <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                            <h3 class="text-xs font-black uppercase tracking-wider text-gray-400 mb-3">Portfolio Split
+                            </h3>
+                            <div class="grid grid-cols-2 gap-6">
+                                <!-- Safe Bucket -->
+                                <div>
+                                    <label class="block text-xs font-bold text-emerald-600 mb-1">Safe Bucket (%)</label>
+                                    <div class="relative">
+                                        <input type="number" id="safe_percent" name="safe_percent"
+                                            value="{{ (100 - form_data.high_risk_percent) | int }}"
+                                            oninput="syncRisk('safe')" min="0" max="100"
+                                            class="w-full px-4 py-2 rounded-lg bg-white border border-emerald-200 focus:ring-2 focus:ring-emerald-500 outline-none text-emerald-700 font-bold">
+                                        <span class="absolute right-3 top-2 text-emerald-400 text-xs font-bold">%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Risk Bucket -->
+                                <div>
+                                    <label class="block text-xs font-bold text-orange-600 mb-1">Risk Bucket (%)</label>
+                                    <div class="relative">
+                                        <input type="number" id="risk_percent" name="high_risk_percent"
+                                            value="{{ form_data.high_risk_percent | int }}" oninput="syncRisk('risk')"
+                                            class="w-full px-4 py-2 rounded-lg bg-white border border-orange-200 focus:ring-2 focus:ring-orange-500 outline-none text-orange-700 font-bold">
+                                        <span class="absolute right-3 top-2 text-orange-400 text-xs font-bold">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Girl Child / SSY Config -->
+                        <div class="p-4 bg-pink-50 rounded-xl border border-pink-100 mt-6">
+                            <h3 class="text-xs font-black uppercase tracking-wider text-pink-400 mb-3">Girl Child Info
+                                (For SSY)</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 mb-1">Number of Girl
+                                        Children</label>
+                                    <select id="girl_child_count" name="girl_child_count"
+                                        onchange="toggleGirlChildInputs()"
+                                        class="w-full px-4 py-2 rounded-lg bg-white border border-pink-200 focus:ring-2 focus:ring-pink-500 outline-none text-gray-700">
+                                        <option value="0" {% if form_data.get('girl_child_count', 0)==0 %}selected{%
+                                            endif %}>None (0)</option>
+                                        <option value="1" {% if form_data.get('girl_child_count', 0)==1 %}selected{%
+                                            endif %}>1 Girl</option>
+                                        <option value="2" {% if form_data.get('girl_child_count', 0)==2 %}selected{%
+                                            endif %}>2 Girl </option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div id="girl_child_1_container"
+                                        class="{% if form_data.get('girl_child_count', 0) < 1 %}hidden{% endif %}">
+                                        <label class="block text-xs font-bold text-gray-500 mb-1">Child 1 Age</label>
+                                        <input type="number" id="girl_child_age_1" name="girl_child_age_1"
+                                            value="{{ form_data.get('girl_child_age_1', '') }}" placeholder="0-10"
+                                            min="0" max="10" oninput="validateChildAge(this)"
+                                            class="w-full px-4 py-2 rounded-lg bg-white border border-pink-200 focus:ring-2 focus:ring-pink-500 outline-none">
+                                    </div>
+                                    <div id="girl_child_2_container"
+                                        class="{% if form_data.get('girl_child_count', 0) < 2 %}hidden{% endif %}">
+                                        <label class="block text-xs font-bold text-gray-500 mb-1">Child 2 Age</label>
+                                        <input type="number" id="girl_child_age_2" name="girl_child_age_2"
+                                            value="{{ form_data.get('girl_child_age_2', '') }}" placeholder="0-10"
+                                            min="0" max="10" oninput="validateChildAge(this)"
+                                            class="w-full px-4 py-2 rounded-lg bg-white border border-pink-200 focus:ring-2 focus:ring-pink-500 outline-none">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Toggle -->
+                    <div class="mt-6">
+                        <button type="button" onclick="toggleAdvanced()"
+                            class="text-sm text-blue-600 font-semibold flex items-center gap-1 hover:underline">
+                            <span>⚙️Calculators</span>
+                        </button>
+
+                        <div id="advancedMeta" class="hidden mt-4 space-y-6 pt-4 border-t border-gray-100">
+                            <!-- INSTRUMENT CALCULATORS SECTION -->
+                            <div class="space-y-6">
+                                <h3 class="text-xs font-black uppercase tracking-wider text-gray-400">Instrument
+                                    Configuration</h3>
+
+
+
+                                {% macro instrument_card(id, title, default_inv, max_inv, default_years, max_years,
+                                rate) %}
+                                <div
+                                    class="rounded-2xl shadow-lg bg-white overflow-hidden transform transition hover:-translate-y-1 duration-300 border border-gray-100">
+                                    <!-- Header -->
+                                    <div
+                                        class="bg-gradient-to-r from-emerald-400 to-teal-500 p-4 flex items-center justify-between">
+                                        <h4 class="text-lg font-bold text-white tracking-wide">{{ title }}</h4>
+                                        <span
+                                            class="bg-white/90 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                                            Rate: {{ rate }}%
+                                        </span>
+                                    </div>
+
+                                    <!-- Body -->
+                                    <div class="p-5 space-y-6">
+                                        <!-- Yearly Investment -->
+                                        <div class="space-y-3">
+                                            <div class="flex justify-between items-center">
+                                                <label class="text-sm font-semibold text-gray-600">Yearly
+                                                    Investment</label>
+                                                <div
+                                                    class="bg-emerald-50 rounded-lg px-3 py-1.5 border border-emerald-100 flex items-center w-36 shadow-inner">
+                                                    <span class="text-emerald-700 font-bold text-sm mr-2">₹</span>
+                                                    <input type="number" id="{{ id }}_amount" name="{{ id }}_amount"
+                                                        value="{{ default_inv }}" min="0"
+                                                        class="sync-input w-full bg-transparent text-right text-base font-bold text-emerald-800 focus:outline-none"
+                                                        data-target="{{ id }}_slider_amount">
+                                                </div>
+                                            </div>
+                                            <input type="range" id="{{ id }}_slider_amount" min="0" max="{{ max_inv }}"
+                                                step="500" value="{{ default_inv }}"
+                                                class="sync-slider w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                                data-target="{{ id }}_amount">
+                                        </div>
+
+                                        <!-- Time Period -->
+                                        <div class="space-y-3">
+                                            <div class="flex justify-between items-center">
+                                                <label class="text-sm font-semibold text-gray-600">Time Period
+                                                    (Years)</label>
+                                                <div
+                                                    class="bg-emerald-50 rounded-lg px-3 py-1.5 border border-emerald-100 flex items-center w-24 shadow-inner">
+                                                    <input type="number" id="{{ id }}_years" name="{{ id }}_years"
+                                                        value="{{ default_years }}" min="0"
+                                                        class="sync-input w-full bg-transparent text-right text-base font-bold text-emerald-800 focus:outline-none"
+                                                        data-target="{{ id }}_slider_years">
+                                                    <span class="text-emerald-700 font-bold text-sm ml-1">Yr</span>
+                                                </div>
+                                            </div>
+                                            <input type="range" id="{{ id }}_slider_years" min="1" max="{{ max_years }}"
+                                                step="1" value="{{ default_years }}"
+                                                class="sync-slider w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                                data-target="{{ id }}_years">
+                                        </div>
+
+                                        <!-- Live Calculations -->
+                                        <div class="mt-4 pt-4 border-t border-gray-100 space-y-2 text-sm text-gray-600 calc-container"
+                                            data-rate="{{ rate }}" data-amount-id="{{ id }}_amount"
+                                            data-years-id="{{ id }}_years">
+                                            <div class="flex justify-between">
+                                                <span>Invested Amount:</span>
+                                                <span class="font-bold text-gray-800"
+                                                    id="{{ id }}_calc_invested">₹0</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>Total Interest:</span>
+                                                <span class="font-bold text-emerald-600"
+                                                    id="{{ id }}_calc_interest">₹0</span>
+                                            </div>
+                                            <div class="flex justify-between text-base font-bold text-emerald-800">
+                                                <span>Maturity Value:</span>
+                                                <span id="{{ id }}_calc_maturity">₹0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endmacro %}
+
+                                {% if instruments %}
+                                {% for instr in instruments %}
+                                {{ instrument_card(
+                                instr.calc_id,
+                                instr.instrument_name,
+                                instr.min_investment,
+                                instr.max_investment,
+                                instr.min_years,
+                                instr.max_years,
+                                instr.interest_rate
+                                ) }}
+                                {% endfor %}
+                                {% else %}
+                                <!-- Fallback if CSV fails loading -->
+                                <p class="text-red-500 text-sm">Error loading instrument configuration.</p>
+                                {% endif %}
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons: Auto Generate & Clear -->
+                    <div class="mt-6 grid grid-cols-4 gap-4">
+                        <button type="submit" name="action" value="auto"
+                            class="col-span-3 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-md hover:bg-blue-700 transition-all">
+                            Generate Auto Plan
+                        </button>
+                        <button type="button" onclick="clearInputs()"
+                            class="col-span-1 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl shadow-md hover:bg-gray-300 transition-all">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Results -->
+            <div id="results-panel" class="lg:col-span-8">
+                {% if plan %}
+                <div class="sticky top-8 space-y-6">
+
+                    <!-- Projection Hero -->
+                    <div
+                        class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-6 rounded-2xl shadow-lg flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xs uppercase tracking-widest opacity-80 mb-1">Projected Corpus ({{
+                                plan.projection.target_year }})</h3>
+                            <div class="text-4xl font-bold">₹{{ plan.projection.estimated_corpus | indian_format }}
+                            </div>
+                            <div class="text-sm opacity-80 mt-2 flex items-center gap-2">
+                                <span class="bg-white/20 px-2 py-0.5 rounded text-xs">Invested: ₹{{
+                                    plan.projection.total_invested | indian_format }}</span>
+                                <span class="bg-white/20 px-2 py-0.5 rounded text-xs">{{ plan.projection.years }}
+                                    Years</span>
+                            </div>
+                        </div>
+                        {% if plan.detailed_plan %}
+                        <div class="text-right">
+                            <a href="#detailed-plan-section"
+                                onclick="document.getElementById('detailed-plan-section').classList.remove('hidden')"
+                                class="text-xs bg-white text-emerald-700 font-bold px-3 py-2 rounded-lg shadow-sm hover:bg-emerald-50 transition-colors flex items-center gap-1">
+                                📊 Detailed Plan
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Detailed Plan Section (Hidden by Default or Toggled) -->
+                    {% if plan.detailed_plan %}
+                    <div id="detailed-plan-section"
+                        class="hidden bg-white p-6 rounded-2xl shadow-lg border border-emerald-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-gray-800">Detail Investments Plan</h3>
+                            <button onclick="document.getElementById('detailed-plan-section').classList.add('hidden')"
+                                class="text-gray-400 hover:text-gray-600">✕</button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {% for item in plan.detailed_plan %}
+                            <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-bold text-emerald-800">{{ item.name }}</h4>
+                                    <span
+                                        class="text-xs bg-white px-2 py-1 rounded text-emerald-600 border border-emerald-200">{{
+                                        item.rate }}%</span>
+                                </div>
+                                <div class="space-y-1 text-sm text-gray-600">
+                                    <div class="flex justify-between">
+                                        <span>Inv. / Yr:</span>
+                                        <span class="font-medium">₹{{ item.yearly_amount | indian_format }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Duration:</span>
+                                        <span class="font-medium">{{ item.years }} Yrs</span>
+                                    </div>
+                                    <div class="flex justify-between border-t border-emerald-200 mt-2 pt-2">
+                                        <span>Total Inv:</span>
+                                        <span class="font-bold text-emerald-700">₹{{ item.total_invested | indian_format
+                                            }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Maturity:</span>
+                                        <span class="font-bold text-emerald-700">₹{{ item.maturity_amount |
+                                            indian_format }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Editable Breakdown -->
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                        <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Plan Allocation</h3>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-sm font-bold text-emerald-600">Monthly Invested: ₹{{
+                                        plan.total_investment_amount | indian_format }}</span>
+                                    {% if form_data.monthly_salary > 0 %}
+                                    <span class="text-xs font-medium text-gray-500">({{
+                                        "{:.0f}".format((plan.total_investment_amount / form_data.monthly_salary)*100)
+                                        }}% of Salary)</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <!-- <span class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Editable
+                                Mode</span> -->
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                            <!-- Safe Bucket -->
+                            <div class="space-y-4">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-gray-400">Safe Bucket</h4>
+
+                                <div class="space-y-3">
+                                    {% macro result_row(label, name, value, total=0, color='blue') %}
+                                    <div class="flex items-center justify-between group">
+                                        <div class="flex flex-col">
+                                            <label class="text-sm font-medium text-gray-600">{{ label }}</label>
+                                            {% if total > 0 and value > 0 %}
+                                            <span class="text-[10px] text-gray-400 font-medium">({{
+                                                "{:.1f}".format((value/total)*100) }}%)</span>
+                                            {% endif %}
+                                        </div>
+                                        <div
+                                            class="flex items-center ring-1 ring-gray-200 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-{{ color }}-500 bg-gray-50">
+                                            <span class="text-gray-400 text-xs mr-2">₹</span>
+                                            <input type="number" name="{{ name }}" value="{{ '{:.0f}'.format(value) }}"
+                                                min="0"
+                                                class="w-24 bg-transparent text-right text-sm font-bold text-gray-800 focus:outline-none">
+                                        </div>
+                                    </div>
+                                    {% endmacro %}
+
+                                    {{ result_row('SSY (Girl Child)', 'manual_ssy', plan.breakdown.ssy,
+                                    plan.total_investment_amount) }}
+                                    {{ result_row('PPF', 'manual_ppf', plan.breakdown.ppf, plan.total_investment_amount)
+                                    }}
+                                    {{ result_row('Debt / RD', 'manual_debt', plan.breakdown.debt_rd,
+                                    plan.total_investment_amount) }}
+                                    {{ result_row('Gold', 'manual_gold', plan.breakdown.gold,
+                                    plan.total_investment_amount) }}
+                                    {{ result_row('Emergency Fund', 'manual_emergency', plan.breakdown.emergency_fund,
+                                    plan.total_investment_amount, 'red') }}
+                                </div>
+                            </div>
+
+                            <!-- Risk Bucket -->
+                            <div class="space-y-4">
+                                <h4 class="text-xs font-black uppercase tracking-wider text-gray-400">Risk Bucket</h4>
+                                <div class="space-y-3">
+                                    {{ result_row('Equity', 'manual_equity', plan.breakdown.equity,
+                                    plan.total_investment_amount, 'yellow') }}
+                                    {{ result_row('Risk Debt', 'manual_risk_debt', plan.breakdown.risk_debt,
+                                    plan.total_investment_amount, 'yellow') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Manual Update Action -->
+                        <div class="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+                            <button type="submit" name="action" value="manual"
+                                class="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-black transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                                <span>↻ Recalculate Projection</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 text-sm">
+                        <h4 class="font-bold text-blue-800 mb-2">Strategy Notes</h4>
+                        <ul class="space-y-2">
+                            {% for note in plan.notes %}
+                            <li class="flex items-start gap-2 text-blue-700">
+                                <span class="mt-1 text-blue-400">•</span>
+                                <span>{{ note }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                </div>
+                {% else %}
+                <!-- Empty State -->
+                <div
+                    class="h-64 flex flex-col items-center justify-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100 text-gray-400">
+                    <div class="text-5xl mb-4 opacity-20">📊</div>
+                    <p class="font-medium">Enter your details to generate your plan.</p>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>
