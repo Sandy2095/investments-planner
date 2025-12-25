@@ -134,20 +134,26 @@
             const count = parseInt(document.getElementById('girl_child_count').value) || 0;
             const container1 = document.getElementById('girl_child_1_container');
             const container2 = document.getElementById('girl_child_2_container');
+            const input1 = document.getElementById('girl_child_age_1');
+            const input2 = document.getElementById('girl_child_age_2');
 
             if (count >= 1) {
                 container1.classList.remove('hidden');
+                input1.required = true;
             } else {
                 container1.classList.add('hidden');
                 // Clear value if hidden
-                document.getElementById('girl_child_age_1').value = '';
+                input1.value = '';
+                input1.required = false;
             }
 
             if (count >= 2) {
                 container2.classList.remove('hidden');
+                input2.required = true;
             } else {
                 container2.classList.add('hidden');
-                document.getElementById('girl_child_age_2').value = '';
+                input2.value = '';
+                input2.required = false;
             }
         }
 
@@ -306,6 +312,9 @@
                     }
                 });
             });
+
+            // Initial Validation State
+            toggleGirlChildInputs();
 
             // Initial Calculation
             updateAllInstrumentCalculations();
